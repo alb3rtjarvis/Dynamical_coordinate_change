@@ -1,0 +1,98 @@
+function [s1,s2,J,Y] = arclength_coord_tensorlines_tb(evfield,intspan,x0,D,Stop_line,bound_struct,tb)
+% Function used to compute arclength coordinates and Jacobian of
+% transformation for a 2 region domain
+%
+%----------------------------------Input----------------------------------%
+%
+% - evfield - function representing eigenvector field which will 
+% be interated in
+%
+% - intspan - 2 element vector containing initial and final time 
+%
+% - x0 - initial spatial point
+%
+% - D - spatial domain over which integration is performed
+%
+% - Stop_line - arc obtained from orthogonal eigenvector field representing
+% other arclength axis, used to stop integrator
+%
+% - bound_struct - structure containing boundaries of regions which contain
+% degenerate points or other problematic strucure, arcs from this struct
+% also stop integrator
+%
+% - tb - vector of +/- 1's determining direction to begin integration
+%
+%--------------------------------Output-----------------------------------%
+%
+% - s1,s2 - arclength coordinates determined by length of tensorline and
+% arclength value on Stop_line
+%
+% - J - Jacobian used for transformation
+%
+% - Y - array containing xy values of tensorline
+%
+
+% Set parameters
+tspan = 0:1e-3:2;
+delta = 1e-5;
+X0 = aux_grid(x0,delta);
+
+t0 = intspan(1);
+T = intspan(2);
+st1 = zeros(5,1); st2 = zeros(5,1);
+
+% Perform integration for x0
+[Y,st1(1),st2(1),error_flag] = integrate_tensorlines_stop(evfield,tspan,t0,X0(1,:),D,T,Stop_line,bound_struct);
+
+% Perform integration of auxiliary grid of points to compute Jacobian
+if tb == 1
+    if error_flag == 0
+        for k = 2:5
+            [~,st1(k),st2(k)] = integrate_tensorlines_stop(evfield,tspan,t0,X0(k,:),D,T,Stop_line,bound_struct);
+            disp(k);
+        end
+        st2 = abs(st2);
+        s1 = st1(1);
+        s2 = st2(1);
+        J = [(st1(3)-st1(2))/(2*delta), (st1(5)-st1(4))/(2*delta); (st2(3)-st2(2))/(2*delta), (st2(5)-st2(4))/(2*delta)];
+    elseif error_flag == 1
+        for k = 2:5
+            [~,st1(k),st2(k)] = integrate_tensorlines_stop(evfield,tspan,t0,X0(k,:),D,T,Stop_line,bound_struct,error_flag);
+            disp(k);
+        end
+        st2 = abs(st2);
+        s1 = st1(1);
+        s2 = st2(1);
+        J = [(st1(3)-st1(2))/(2*delta), (st1(5)-st1(4))/(2*delta); (st2(3)-st2(2))/(2*delta), (st2(5)-st2(4))/(2*delta)];    
+    else
+        s1 = NaN;
+        s2 = NaN;
+        J = NaN(2,2);
+    end
+else
+        if error_flag == 0
+        for k = 2:5
+            [~,st1(k),st2(k)] = integrate_tensorlines_stop(evfield,tspan,t0,X0(k,:),D,T,Stop_line,bound_struct);
+            disp(k);
+        end
+        st2 = -abs(st2);
+        s1 = st1(1);
+        s2 = st2(1);
+        J = [(st1(3)-st1(2))/(2*delta), (st1(5)-st1(4))/(2*delta); (st2(3)-st2(2))/(2*delta), (st2(5)-st2(4))/(2*delta)];
+    elseif error_flag == 1
+        for k = 2:5
+            [~,st1(k),st2(k)] = integrate_tensorlines_stop(evfield,tspan,t0,X0(k,:),D,T,Stop_line,bound_struct,error_flag);
+            disp(k);
+        end
+        st2 = -abs(st2);
+        s1 = st1(1);
+        s2 = st2(1);
+        J = [(st1(3)-st1(2))/(2*delta), (st1(5)-st1(4))/(2*delta); (st2(3)-st2(2))/(2*delta), (st2(5)-st2(4))/(2*delta)];    
+    else
+        s1 = NaN;
+        s2 = NaN;
+        J = NaN(2,2);
+        end
+end
+end
+
